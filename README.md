@@ -1,7 +1,9 @@
 # RSpec Notes
-A personal compilation of basic RSpec notes.
+A personal compilation of basic RSpec notes on syntax.
 
-# 1. Basics
+# Intro
+
+## 1. Basics
 
 ```ruby
 class Card
@@ -54,7 +56,7 @@ end
 
 ```
 
-# 2. Context 
+## 2. Context 
 
 ```ruby
 # '.method' for class methods
@@ -81,7 +83,7 @@ RSpec.describe '#even? method' do
 end
 ```
 
-# 3. Before/After Hooks
+## 3. Before/After Hooks
 ```ruby
 RSpec.describe 'before and after hooks' do
   # Runs before the current context (1 level up)
@@ -116,7 +118,7 @@ RSpec.describe 'before and after hooks' do
 end
 ```
 
-# 4. Nested Hooks
+## 4. Nested Hooks
 ```ruby
 RSpec.describe 'nested hooks' do
   # Runs once before this entire context
@@ -157,7 +159,7 @@ RSpec.describe 'nested hooks' do
 end
 ```
 
-# 5. Overwriting `let`
+## 5. Overwriting `let`
 ```ruby
 class ProgrammingLanguage
   attr_reader :name
@@ -190,7 +192,7 @@ end
 ```
 
 
-# 6. Implicit Subject
+## 6. Implicit Subject
 ```ruby
 RSpec.describe Hash do
   # 'subject' automatically refers to the argument of the describe block
@@ -209,7 +211,7 @@ RSpec.describe Hash do
 end
 ```
 
-# 7. Explicit Subject
+## 7. Explicit Subject
 ```ruby
 RSpec.describe Hash do
   # Subject refers to whatever returned from this block
@@ -232,7 +234,7 @@ RSpec.describe Hash do
 end
 ```
 
-# 8. Described Class
+## 8. Described Class
 ```ruby
 class King
   attr_reader :name
@@ -254,7 +256,7 @@ RSpec.describe King do
 end
 ```
 
-# 9. One-liner Syntax
+## 9. One-liner Syntax
 ```ruby
 RSpec.describe 'shorthand syntax' do
   subject { 5 }
@@ -272,7 +274,7 @@ RSpec.describe 'shorthand syntax' do
 end
 ```
 
-# 10. Shared Examples
+## 10. Shared Examples
 ```ruby
 # Shared example subject hooks onto subject where included
 RSpec.shared_examples 'a Ruby object with a length of 3' do
@@ -308,7 +310,7 @@ RSpec.describe SausageLink do
 end
 ```
 
-# 11. Shared Context
+## 11. Shared Context
 ```ruby
 # Shared context can be useful for consolidating common blocks/setup/variables/methods
 # Can be imported via include_context
@@ -347,6 +349,421 @@ RSpec.describe 'second example group' do
 
   it 'can use shared let variables' do
     expect(some_variable).to eq([1, 2, 3])
+  end
+end
+```
+
+## 12. `not_to` method
+```ruby
+RSpec.describe 'not_to method' do
+  it 'checks that two values do not match' do
+    expect(5).not_to eq(1)
+    expect('Hello').not_to eq('hello')
+    expect([1, 2]).not_to eq([1, 2, 3])
+  end
+
+  it 'checks for the inverse of a matcher' do
+    expect(5).not_to eq(10)
+    expect([1, 2, 3]).not_to equal([1, 2, 3])
+
+    expect(10).not_to be_odd
+    expect([1, 2, 3]).not_to be_empty
+  end
+end
+```
+
+# Matchers
+
+## 13. Equality matchers
+```ruby
+RSpec.describe 'equality matchers' do
+  let(:a) { 3.0 }
+  let(:b) { 3 }
+
+  # 'eq' -> Type-insensitive compare
+  describe 'eq matcher' do
+    it 'tests for value and ignores type' do
+      expect(a).to eq(b)
+      expect(a).to eq(3)
+      expect(b).to eq(3.0)
+    end
+  end
+
+  # 'eql' -> Type-sensitive compare
+  describe 'eql matcher' do
+    it 'tests for value equality including type' do
+      expect(a).to eql(3.0)
+      expect(b).to eql(3)
+
+      expect(a).not_to eql(b)
+      expect(a).not_to eql(3)
+      expect(b).not_to eql(3.0)
+    end
+  end
+
+  describe 'equal and be matcher' do
+    let(:c) { [1, 2, 3] }
+    let(:d) { [1, 2, 3] }
+    let(:e) { c }
+
+    # 'equal' -> Object identity comparison
+    # 'be' is simply an alias for 'equal'
+    it 'cares about object identity' do
+      expect(c).to_not equal(d)
+      expect(c).to_not be(d)
+      expect(c).to_not be([1, 2, 3])
+
+      expect(c).to equal(e)
+      expect(c).to be(e)
+    end
+  end
+end
+```
+
+## 14. Comparison Matchers
+```ruby
+# 'be' and 'equal' can be used with comparison matchers
+RSpec.describe 'comparison matchers' do
+  it 'allows for comparison with built-in Ruby operators' do
+    expect(10).to be > 5
+    expect(3).to be < 5
+
+    expect(1).to be >= -1
+    expect(1).to be <= 2
+  end
+
+  describe 100 do
+    it { is_expected.to be > 90 }
+    it { is_expected.to be < 110 }
+
+    it { is_expected.not_to be > 100 }
+    it { is_expected.not_to be < 100 }
+  end
+end
+```
+
+## 15. Predicate Methods
+```ruby
+# Predicate methods usually end in '?' and return true/false
+# For example: '.zero?'
+RSpec.describe 'predicate methods and predicate matchers' do
+  it 'can be tested with plain Ruby methods' do
+    result = 16 / 2
+    expect(result.even?).to eq(true)
+  end
+
+  # Format: 'be_#{custom_predicate_method_name}' (without question mark)
+  it 'can be tested with predicate matchers' do
+    expect(16 / 2).to be_even
+    expect(16 / 2).not_to be_odd
+    expect(0).to be_zero
+    expect([]).to be_empty
+  end
+
+  describe 0 do
+    it { is_expected.to be_zero }
+    it { is_expected.to_not be_odd }
+  end
+end
+```
+
+## 16. `all` Matchers
+```ruby
+RSpec.describe 'all matcher' do
+  it 'allows for aggregate checks' do
+    ## Iterating through collection:
+    # [5, 7, 9].each do |val|
+    #   expect(val).to be_odd
+    # end
+
+    # Shorthand for above
+    expect([5, 7, 9]).to all(be_odd)
+    expect([2, 4, 6]).to all(be_even)
+    expect([0, 0]).to all(be_zero)
+
+    # Can be combined with comparison matchers
+    expect([5, 7, 9]).to all(be < 10)
+  end
+
+  describe [5, 7, 9] do
+    it { is_expected.to all(be_odd) }
+    it { is_expected.to all(be < 10) }
+  end
+end
+```
+
+## 17. `be` Matchers
+```ruby
+RSpec.describe 'be matchers' do
+  it 'can test for truthiness' do
+    expect(true).to be_truthy
+    expect('Hello').to be_truthy
+    expect(0).to be_truthy
+    expect(1).to be_truthy
+    expect([]).to be_truthy
+    expect(:symbol).to be_truthy
+  end
+
+  it 'can test for falsiness' do
+    expect(nil).not_to be_truthy
+    expect(false).not_to be_truthy
+  end
+
+  it 'can test for nil' do
+    expect(nil).to be_nil
+
+    my_hash = { a: 5 }
+    expect(my_hash[:a]).not_to be_nil
+    expect(my_hash[:b]).to be_nil
+  end
+end
+```
+
+## 18. Change Matchers
+```ruby
+RSpec.describe 'change matcher' do
+  subject { [1, 2, 3] }
+
+  it 'checks that a method changes object state' do
+    # From/to - might be too specific
+    expect { subject.push(4) }.to change { subject.length }.from(3).to(4)
+
+    # By
+    expect { subject.push(4) }.to change { subject.length }.by(1)
+  end
+
+  it 'accepts negative arguments' do
+    expect { subject.pop }.to change { subject.length }.from(3).to(2)
+
+    expect { subject.pop }.to change { subject.length }.by(-1)
+  end
+end
+```
+
+## 19, 20. `contain_exactly` and `start/end_with` Matchers
+```ruby
+RSpec.describe 'contain_exactly matcher' do
+  subject { [1, 2, 3] }
+
+  describe 'long form syntax' do
+    it 'should check for the presence of all elements specified' do
+      expect(subject).to contain_exactly(1, 2, 3)
+      expect(subject).to contain_exactly(3, 2, 1)
+      expect(subject).not_to contain_exactly(1)
+    end
+  end
+
+  it { is_expected.to contain_exactly(1, 2, 3) }
+  it { is_expected.to contain_exactly(3, 2, 1) }
+end
+
+RSpec.describe 'start_with and end_with matchers' do
+  describe 'caterpillar' do
+    it 'should check for substring at the beginning or end' do
+      expect(subject).to start_with 'cat'
+      expect(subject).to end_with 'pillar'
+    end
+
+    it 'is case sensitive' do
+      expect(subject).not_to start_with 'Cat'
+      expect(subject).not_to end_with 'Pillar'
+    end
+
+    it { is_expected.to start_with('cat') }
+    it { is_expected.to end_with('pillar') }
+  end
+
+  describe [:a, :b, :c, :d] do
+    it 'should check for elements at the beginning or end of array' do
+      expect(subject).to start_with(:a)
+      expect(subject).to start_with(:a, :b)
+
+      expect(subject).to end_with(:d)
+      expect(subject).to end_with(:c, :d)
+    end
+
+    it { is_expected.to start_with(:a) }
+    it { is_expected.to end_with(:d) }
+  end
+end
+```
+
+## 21. `have_attributes` Matcher
+```ruby
+class Car
+  attr_reader :make, :model
+
+  def initialize(make, model)
+    @make = make
+    @model = model
+  end
+end
+
+RSpec.describe 'have_attributes matcher' do
+  describe Car.new('Honda', 'Civic') do
+    it 'checks for object attribute and proper values' do
+      expect(subject).to have_attributes(make: 'Honda')
+      expect(subject).to have_attributes(make: 'Honda', model: 'Civic')
+    end
+
+    it { is_expected.to have_attributes(make: 'Honda', model: 'Civic') }
+  end
+end
+```
+
+## 22. `include` Matcher
+```ruby
+RSpec.describe 'include matcher' do
+  describe 'hot chocolate' do
+    it 'checks for substring inclusion' do
+      expect(subject).to include('hot')
+      expect(subject).to include('choc')
+      expect(subject).to include('late')
+    end
+
+    it { is_expected.to include('choco') }
+  end
+
+  describe [10, 20, 30] do
+    it 'checks for inclusion in the array, regardless of order' do
+      expect(subject).to include(10)
+      expect(subject).to include(10, 20)
+      expect(subject).to include(30, 20, 10)
+    end
+
+    it { is_expected.to include(20, 30, 10) }
+  end
+
+  describe ({ a: 2, b: 4 }) do
+    it 'can check for key existence' do
+      expect(subject).to include(:a)
+      expect(subject).to include(:b, :a)
+    end
+
+    it 'can check for a key-value pair' do
+      expect(subject).to include(a: 2)
+      expect(subject).to_not include(a: 3)
+    end
+
+    it { is_expected.to include(:a) }
+    it { is_expected.to include(a: 2) }
+  end
+end
+```
+
+## 23. Error Matchers
+```ruby
+RSpec.describe 'raise_error matcher' do
+  def some_method
+    x # undefined
+  end
+
+  class CustomError < StandardError; end
+
+  it 'can check for any error' do
+    # Wrong: expect(some_method).to raise_error(NameError)
+    # -> Need to be passed in as a block so error doesn't halt test suite
+    # Also Wrong: expect { ... }.to raise_error
+    # -> should always specify specific error
+
+    expect { some_method }.to raise_error(NameError)
+    expect { 1 / 0 }.to raise_error(ZeroDivisionError)
+  end
+
+  it 'can check for a custom error' do
+    expect { raise CustomError }.to raise_error(CustomError)
+  end
+end
+```
+
+## 24. `respond_to` Matchers
+```ruby
+class Vehicle
+  def drive
+    'Vroom'
+  end
+
+  def honk
+    'Honk'
+  end
+
+  def refuel(gallons)
+    "Refueled #{gallons} gallons"
+  end
+end
+
+RSpec.describe 'respond_to matcher' do
+  subject { Vehicle.new }
+
+  it 'confirms that an object can respond to a method' do
+    expect(subject).to respond_to(:drive)
+    expect(subject).to respond_to(:drive, :honk)
+    expect(subject).to respond_to(:drive, :honk, :refuel)
+  end
+
+  it 'confirms an object can respond to a method with arguments' do
+    expect(subject).to respond_to(:refuel)
+    expect(subject).to respond_to(:refuel).with(1).arguments
+  end
+
+  it { is_expected.to respond_to(:refuel) }
+  it { is_expected.to respond_to(:refuel).with(1).arguments }
+end
+```
+
+## 25. Satisfy Matcher
+```ruby
+RSpec.describe 'satisfy matcher' do
+  subject { 'racecar' }
+  # subject { 'racecars' }
+
+  it 'is a palindrome' do
+    expect(subject).to satisfy { |value| value == value.reverse }
+  end
+
+  it 'can accept a custom error message' do
+    expect(subject + 's').to satisfy('be a palindrome') do |value|
+      value == value.reverse
+    end
+  end
+end
+```
+
+## 26. Compound Expectations
+```ruby
+# .and
+RSpec.describe 'multiple matchers - and' do
+  context do
+    subject { 25 }
+
+    it 'can test for multiple matchers' do
+      # expect(subject).to be_odd
+      # expect(subject).to be > 20
+
+      # Shorthand for above, allows chaining:
+      expect(subject).to be_odd.and be > 20
+    end
+
+    it { is_expected.to be_odd.and be > 20 }
+  end
+
+  context do
+    subject { 'caterpillar' }
+
+    it 'supports multiple matchers on a single line' do
+      expect(subject).to start_with('cat').and end_with('pillar')
+    end
+
+    it { is_expected.to start_with('cat').and end_with('pillar') }
+  end
+end
+
+# .or
+RSpec.describe 'multiple matchers - or' do
+  subject { %i[usa canada mexico] }
+
+  it 'can check for multiple possibilities' do
+    expect(subject.sample).to eq(:usa).or eq(:canada).or eq(:mexico)
   end
 end
 ```
