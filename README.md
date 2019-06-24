@@ -1,16 +1,46 @@
-# RSpec Notes
+# RSpec Notes  <!-- omit in toc -->
 A personal compilation of basic RSpec notes on syntax.
 
 All code from `spec/` has been pasted here for quick searching.
 
-**Sections**
-1. [Intro](#intro)
-2. [Matchers](#matchers)
+- [Basics](#Basics)
+  - [1. Intro](#1-Intro)
+  - [2. Context](#2-Context)
+  - [3. Before/After Hooks](#3-BeforeAfter-Hooks)
+  - [4. Nested Hooks](#4-Nested-Hooks)
+  - [5. Overwriting `let`](#5-Overwriting-let)
+  - [6. Implicit Subject](#6-Implicit-Subject)
+  - [7. Explicit Subject](#7-Explicit-Subject)
+  - [8. Described Class](#8-Described-Class)
+  - [9. One-liner Syntax](#9-One-liner-Syntax)
+  - [10. Shared Examples](#10-Shared-Examples)
+  - [11. Shared Context](#11-Shared-Context)
+  - [12. `not_to` method](#12-notto-method)
+- [Matchers](#Matchers)
+  - [13. Equality matchers](#13-Equality-matchers)
+  - [14. Comparison Matchers](#14-Comparison-Matchers)
+  - [15. Predicate Methods](#15-Predicate-Methods)
+  - [16. `all` Matchers](#16-all-Matchers)
+  - [17. `be` Matchers](#17-be-Matchers)
+  - [18. Change Matchers](#18-Change-Matchers)
+  - [19, 20. `contain_exactly` and `start/end_with` Matchers](#19-20-containexactly-and-startendwith-Matchers)
+  - [21. `have_attributes` Matcher](#21-haveattributes-Matcher)
+  - [22. `include` Matcher](#22-include-Matcher)
+  - [23. Error Matchers](#23-Error-Matchers)
+  - [24. `respond_to` Matchers](#24-respondto-Matchers)
+  - [25. Satisfy Matcher](#25-Satisfy-Matcher)
+  - [26. Compound Expectations](#26-Compound-Expectations)
+- [Mocks and Doubles](#Mocks-and-Doubles)
+  - [27, 28. Doubles](#27-28-Doubles)
+  - [29, 30. `allow` Methods and Matching Arguments](#29-30-allow-Methods-and-Matching-Arguments)
+  - [31. Instance Doubles](#31-Instance-Doubles)
+  - [32. Class Doubles](#32-Class-Doubles)
+  - [33. Spies](#33-Spies)
    
 
-# Intro
+# Basics
 
-## 1. Basics
+## 1. Intro
 
 ```ruby
 class Card
@@ -771,6 +801,276 @@ RSpec.describe 'multiple matchers - or' do
 
   it 'can check for multiple possibilities' do
     expect(subject.sample).to eq(:usa).or eq(:canada).or eq(:mexico)
+  end
+end
+```
+
+# Mocks and Doubles
+
+## 27, 28. Doubles
+```ruby
+# A double is basically a 'stunt double' for the actual object
+# These objects closely resemble the original objects
+RSpec.describe 'a random double' do
+  it 'only allows defined methods to be invoked' do
+    # stuntman = double('Stuntman', fall_off_ladder: 'Ouch', light_on_fire: true)
+    # expect(stuntman.fall_off_ladder).to eq('Ouch')
+    # expect(stuntman.light_on_fire).to eq(true)
+
+    # stuntman = double('Stuntman')
+    # allow(stuntman).to receive(:fall_off_ladder).and_return('Ouch')
+    # expect(stuntman.fall_off_ladder).to eq('Ouch')
+
+    stuntman = double('Stuntman')
+    allow(stuntman).to receive_messages(fall_off_ladder: 'Ouch', light_on_fire: true)
+    expect(stuntman.fall_off_ladder).to eq('Ouch')
+    expect(stuntman.light_on_fire).to eq(true)
+  end
+end
+
+class Actor
+  def initialize(name)
+    @name = name
+  end
+
+  def ready?
+    sleep(3) # Emulating a complex process that takes some amount of time
+    true
+  end
+
+  def act
+    'You are the one, Neo'
+  end
+
+  def dodge_bullets
+    true
+  end
+end
+
+class Movie
+  attr_reader :actor
+
+  def initialize(actor)
+    @actor = actor
+  end
+
+  def start_shooting
+    return unless actor.ready?
+
+    actor.act
+    actor.dodge_bullets
+    actor.act
+  end
+end
+
+# Since we are testing the Movie class, we do not care about the implementation of Actor
+# We can thus create a double to mock an Actor and focus on testing Movie
+RSpec.describe Movie do
+  let(:stuntman) { double('Stuntman', ready?: true, act: 'Acting', dodge_bullets: true) }
+  subject { described_class.new(stuntman) }
+
+  describe '#start_shooting' do
+    it 'expects an actor to do 3 actions' do
+      # We write our expectations before actually calling the method
+      # expect(stuntman).to receive(:ready?).once
+      # expect(stuntman).to receive(:ready?).exactly(1).times
+      expect(stuntman).to receive(:ready?).at_most(1).times
+
+      # expect(stuntman).to receive(:act).twice
+      # expect(stuntman).to receive(:act).exactly(2).times
+      expect(stuntman).to receive(:act).at_least(2).times
+      expect(stuntman).to receive(:dodge_bullets).once
+
+      subject.start_shooting
+    end
+  end
+end
+```
+
+## 29, 30. `allow` Methods and Matching Arguments
+```ruby
+RSpec.describe 'allow methods' do
+  it 'can customize return value for methods on doubles' do
+    calculator = double
+    allow(calculator).to receive(:add).and_return(15)
+
+    expect(calculator.add).to eq(15)
+    expect(calculator.add(3)).to eq(15)
+    expect(calculator.add('string')).to eq(15)
+  end
+
+  it 'can stub one or more methods on a real object' do
+    arr = [1, 2, 3]
+    allow(arr).to receive(:sum).and_return(10) # Will intercept default Array `sum` method
+    expect(arr.sum).to eq(10)
+
+    arr.push(4)
+    expect(arr).to eq([1, 2, 3, 4]) # All other Array methods are still available
+  end
+
+  it 'can return multiple values in sequence' do
+    mock_array = double
+    allow(mock_array).to receive(:pop).and_return(:c, :b, nil)
+
+    expect(mock_array.pop).to eq(:c)
+    expect(mock_array.pop).to eq(:b)
+    expect(mock_array.pop).to be_nil
+    expect(mock_array.pop).to be_nil
+  end
+end
+
+RSpec.describe 'matching arguments' do
+  it 'can return different values depending on the argument' do
+    three_element_array = double # [1, 2, 3]
+
+    allow(three_element_array).to receive(:first).with(no_args).and_return(1)
+    allow(three_element_array).to receive(:first).with(1).and_return([1])
+    allow(three_element_array).to receive(:first).with(2).and_return([1, 2])
+    allow(three_element_array).to receive(:first).with(3).and_return([1, 2, 3])
+    allow(three_element_array).to receive(:first).with(be >= 3).and_return([1, 2, 3])
+
+    expect(three_element_array.first).to eq(1)
+    expect(three_element_array.first(1)).to eq([1])
+    expect(three_element_array.first(2)).to eq([1, 2])
+    expect(three_element_array.first(100)).to eq([1, 2, 3])
+  end
+end
+```
+
+## 31. Instance Doubles
+```ruby
+class Person
+  def a
+    sleep(3) # Emulating a complex process that takes some amount of time
+    'Hello'
+  end
+end
+
+RSpec.describe Person do
+  describe 'regular double' do
+    it 'can implement any method' do
+      person = double(a: 'Hello', b: 20)
+      expect(person.a).to eq('Hello')
+    end
+  end
+
+  # RSpec can verify that the double closely resembles an instance of the actual class
+  describe 'instance double' do
+    it 'can only implement methods that are defined on the class' do
+      # Making a double based off of an instance of the class
+      # Below would trigger: `the Person class does not implement the instance method: b`
+      # person = instance_double(Person, a: 'Hello', b: 20)
+
+      # Below would trigger: `Wrong number of arguments. Expected 0, got 2.`
+      # person = instance_double(Person)
+      # allow(person).to receive(:a).with(3, 10).and_return('Hello')
+
+      person = instance_double(Person)
+      allow(person).to receive(:a).and_return('Hello')
+    end
+  end
+end
+```
+
+## 32. Class Doubles
+```ruby
+# class Deck
+#   def self.build
+#     # Business logic
+#   end
+# end
+
+class CardGame
+  attr_reader :cards
+
+  def start
+    @cards = Deck.build # Class method call
+  end
+end
+
+# Similar to instance doubles, but for classes and class methods
+RSpec.describe CardGame do
+  it 'can only implement class methods that are defined on a class' do
+    # Below would trigger: `the Deck class does not implement the class method: shuffle`
+    # deck = class_double(Deck, build: %w[Ace Queen])
+
+    # If Deck has not been defined yet, we can pass a string class name:
+    # deck = class_double('Deck', build: %w[Ace Queen])
+
+    # Makes sure that subsequent calls to Deck within the code use this stub
+    # Instead of searching for the actual Deck class
+    deck_klass = class_double('Deck', build: %w[Ace Queen]).as_stubbed_const
+
+    expect(deck_klass).to receive(:build)
+    subject.start
+    expect(subject.cards).to eq(%w[Ace Queen])
+  end
+end
+```
+
+## 33. Spies
+```ruby
+# Doubles place expectations before the actual action
+# Spies place expectations after the actual action
+RSpec.describe 'spies' do
+  let(:animal) { spy('animal') }
+
+  it 'confirms that a message has been received' do
+    # With a regular double you would do the following:
+    # expect(animal).to receive(:eat_food)
+    # animal.eat_food
+
+    animal.eat_food
+    expect(animal).to have_received(:eat_food)
+    expect(animal).not_to have_received(:eat_human)
+  end
+
+  it 'resets between examples' do
+    expect(animal).not_to have_received(:eat_food)
+  end
+
+  it 'retains the same functionality of a regular double' do
+    animal.eat_food
+    animal.eat_food
+    animal.eat_food('Sushi')
+    expect(animal).to have_received(:eat_food).exactly(3).times
+    expect(animal).to have_received(:eat_food).with('Sushi').once
+  end
+end
+
+class Automobile
+  def initialize(model)
+    @model = model
+  end
+end
+
+class Garage
+  attr_reader :storage
+
+  def initialize
+    @storage = []
+  end
+
+  def add_to_collection(model)
+    @storage << Automobile.new(model)
+  end
+end
+
+RSpec.describe Garage do
+  let(:automobile) { instance_double(Automobile) }
+
+  # Make calls to Automobile return our instance double
+  # Grants spy-like functionality to our instance double
+  before do
+    allow(Automobile).to receive(:new).and_return(automobile)
+  end
+
+  it 'adds a car to its storage' do
+    subject.add_to_collection('Honda Civic')
+
+    expect(Automobile).to have_received(:new).with('Honda Civic')
+    expect(subject.storage.length).to eq(1)
+    expect(subject.storage.first).to eq(automobile)
   end
 end
 ```
