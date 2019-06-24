@@ -1,6 +1,13 @@
 # RSpec Notes
 A personal compilation of basic RSpec notes on syntax.
 
+All code from `spec/` has been pasted here for quick searching.
+
+**Sections**
+1. [Intro](#intro)
+2. [Matchers](#matchers)
+   
+
 # Intro
 
 ## 1. Basics
