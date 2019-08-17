@@ -1,5 +1,5 @@
 # RSpec Notes  <!-- omit in toc -->
-A personal compilation of basic RSpec notes on syntax.
+Covers basic features and syntax.
 
 All code from `spec/` has been pasted here for quick searching.
 
